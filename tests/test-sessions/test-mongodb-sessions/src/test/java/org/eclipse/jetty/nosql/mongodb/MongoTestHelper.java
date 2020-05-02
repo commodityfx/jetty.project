@@ -32,8 +32,10 @@ import com.mongodb.MongoException;
 import com.mongodb.WriteConcern;
 import org.eclipse.jetty.server.session.SessionData;
 import org.eclipse.jetty.util.ClassLoadingObjectInputStream;
-import org.eclipse.jetty.util.log.Log;
-import org.eclipse.jetty.util.log.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.output.Slf4jLogConsumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -44,10 +46,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class MongoTestHelper
 {
-    private static final Logger LOG = Log.getLogger(MongoTestHelper.class);
+    private static final Logger LOG = LoggerFactory.getLogger(MongoTestHelper.class);
     static int __workers = 0;
     public static final String DB_NAME = "HttpSessions";
     public static final String COLLECTION_NAME = "testsessions";
+
+    static GenericContainer mongo =
+        new GenericContainer("mongo:" + System.getProperty("mongo.docker.version"))
+            .withLogConsumer(new Slf4jLogConsumer(LOG));
 
     static MongoClient _mongoClient;
 
@@ -55,10 +61,13 @@ public class MongoTestHelper
     {
         try
         {
-            _mongoClient =
-                new MongoClient(System.getProperty("embedmongo.host"), Integer.getInteger("embedmongoPort"));
+            mongo.start();
+            System.setProperty("embedmongoHost", "localhost");
+            int mongoPort = mongo.getMappedPort(27017);
+            System.setProperty("embedmongoPort", Integer.toString(mongoPort));
+            _mongoClient = new MongoClient("localhost", mongoPort);
         }
-        catch (UnknownHostException e)
+        catch (Exception e)
         {
             e.printStackTrace();
         }
@@ -193,7 +202,7 @@ public class MongoTestHelper
         boolean upsert = false;
         BasicDBObject sets = new BasicDBObject();
 
-        Object version = new Long(1);
+        Object version = 1L;
 
         // New session
 
@@ -242,7 +251,7 @@ public class MongoTestHelper
         boolean upsert = false;
         BasicDBObject sets = new BasicDBObject();
 
-        Object version = new Long(1);
+        Object version = 1L;
 
         // New session
         upsert = true;
@@ -288,7 +297,7 @@ public class MongoTestHelper
         boolean upsert = false;
         BasicDBObject sets = new BasicDBObject();
 
-        Object version = new Long(1);
+        Object version = 1L;
 
         // New session
         upsert = true;
